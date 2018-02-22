@@ -3,11 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using IdentityServerWithAspNetIdentity.Data;
+using IdentityServerWithAspNetIdentity.Models;
+using IdentityServerWithAspNetIdentity.Services;
+using IdentityServerQuickStart;
 
-namespace MvcClient
+namespace IdentityServerWithAspNetIdentity
 {
     public class Startup
     {
@@ -21,28 +27,25 @@ namespace MvcClient
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddDbContext<ApplicationDbContext>(options =>
+                options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")));
+
+            services.AddIdentity<ApplicationUser, IdentityRole>()
+                .AddEntityFrameworkStores<ApplicationDbContext>()
+                .AddDefaultTokenProviders();
+
+            // Add application services.
+            services.AddTransient<IEmailSender, EmailSender>();
+
             services.AddMvc();
-            services.AddAuthentication((options) =>
-            {
-                options.DefaultScheme = "Cookies";
-                options.DefaultChallengeScheme = "oidc";
-            })
-            .AddCookie("Cookies")
-            .AddOpenIdConnect("oidc", (options) =>
-            {
-                options.SignInScheme = "Cookies";
-                options.Authority = "http://localhost:5000";
-                options.RequireHttpsMetadata = false;
 
-                options.ClientId = "mvc";
-                options.ClientSecret = "secret";
-                options.ResponseType = "code id_token";
-                options.SaveTokens = true;
-                options.GetClaimsFromUserInfoEndpoint = true;
-
-                options.Scope.Add("api1");
-                options.Scope.Add("offline_access");
-            });
+            services.AddIdentityServer()
+                .AddDeveloperSigningCredential()
+                .AddInMemoryPersistedGrants()
+                .AddInMemoryIdentityResources(config.GetIdentityResource())
+                .AddInMemoryApiResources(config.GetResource())
+                .AddInMemoryClients(config.GetClient())
+                .AddAspNetIdentity<ApplicationUser>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -52,14 +55,16 @@ namespace MvcClient
             {
                 app.UseBrowserLink();
                 app.UseDeveloperExceptionPage();
+                app.UseDatabaseErrorPage();
             }
             else
             {
                 app.UseExceptionHandler("/Home/Error");
             }
 
-            app.UseAuthentication();
             app.UseStaticFiles();
+
+            app.UseAuthentication();
 
             app.UseMvc(routes =>
             {

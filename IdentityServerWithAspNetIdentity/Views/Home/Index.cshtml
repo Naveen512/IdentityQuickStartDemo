@@ -1,5 +1,4 @@
-﻿@using Microsoft.AspNetCore.Authentication;
-@{
+﻿@{
     ViewData["Title"] = "Home Page";
 }
 
@@ -104,16 +103,4 @@
             <li><a href="https://go.microsoft.com/fwlink/?LinkID=398609">Publish to Microsoft Azure Web Apps</a></li>
         </ul>
     </div>
-    
-</div>
-
-<div>
-    @foreach (var claim in User.Claims)
-    {
-        <div>@claim.Type</div>
-        <div>@claim.Value</div>
-    }
-</div>
-<div>
-    @await ViewContext.HttpContext.GetTokenAsync("access_token")
 </div>
